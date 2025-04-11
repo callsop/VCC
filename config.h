@@ -28,7 +28,7 @@ void UpdateConfig (void);
 void UpdateSoundBar(unsigned short,unsigned short);
 void UpdateTapeCounter(unsigned int,unsigned char);
 int GetKeyboardLayout();
-void SetWindowSize(POINT);
+void SetWindowSize(POINT,POINT);
 
 void SetIniFilePath(char *);
 void SetKeyMapFilePath(char *);

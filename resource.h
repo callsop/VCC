@@ -446,6 +446,7 @@
 #define ID_TAPE_CONFIG                  40056
 #define ID_BITBANGER_CONFIG             40057
 #define ID_SWAP_JOYSTICKS               40058
+#define IDC_REMEMBER_POS                40059
 #define ID_CONFIGURE_OPTIONS            65535
 
 

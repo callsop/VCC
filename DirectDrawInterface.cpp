@@ -64,6 +64,7 @@ static unsigned char Resizeable=1;
 static unsigned char ForceAspect=1;
 static char StatusText[255]="";
 static unsigned int Color=0;
+static POINT RememberWinPos;
 static POINT RememberWinSize;
 static POINT ForcedAspectBorderPadding;
 
@@ -444,11 +445,14 @@ void DisplayFlip(SystemState *DFState)	// Double buffering flip
 	}
 #endif // USE_DIRECTX
 
+	static RECT CurWindow;
+	::GetWindowRect(DFState->WindowHandle, &CurWindow);
 	static RECT CurScreen;
 	::GetClientRect(DFState->WindowHandle, &CurScreen);
-	//CurScreen.bottom -= StatusBarHeight;
 	int clientWidth = (int)CurScreen.right;
 	int clientHeight = (int)CurScreen.bottom;
+	RememberWinPos.x = CurWindow.left;
+	RememberWinPos.y = CurWindow.top;
 	RememberWinSize.x = clientWidth; // Used for saving new window size to the ini file.
 	RememberWinSize.y = clientHeight-StatusBarHeight;
 	return;
@@ -740,6 +744,11 @@ float Static(SystemState *STState)
 }
 POINT GetCurWindowSize() {
 	return (RememberWinSize);
+}
+
+POINT GetCurWindowPos() 
+{
+	return RememberWinPos;
 }
 
 int GetRenderWindowStatusBarHeight()

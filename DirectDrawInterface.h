@@ -32,6 +32,7 @@ unsigned char SetResize(unsigned char);
 unsigned char SetAspect (unsigned char);
 float Static(SystemState *);
 POINT GetCurWindowSize();
+POINT GetCurWindowPos();
 void DisplayFlip(SystemState *);
 POINT GetForcedAspectBorderPadding();
 void CloseScreen();

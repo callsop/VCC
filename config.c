@@ -89,6 +89,9 @@ typedef struct  {
 	unsigned char	ScanLines;
 	unsigned char	Resize;
 	unsigned char	Aspect;
+	unsigned short	RememberPos;
+	unsigned short	WindowPosX;
+	unsigned short	WindowPosY;
 	unsigned short	RememberSize;
 	unsigned short	WindowSizeX;
 	unsigned short	WindowSizeY;
@@ -213,6 +216,7 @@ void LoadConfig(SystemState *LCState)
 /***********************************************************/
 unsigned char WriteIniFile(void)
 {
+	POINT wp = GetCurWindowPos();
 	POINT tp = GetCurWindowSize();
 	CurrentConfig.Resize = 1;      // How to restore default window size?
 
@@ -241,9 +245,12 @@ unsigned char WriteIniFile(void)
 	WritePrivateProfileInt("Video","PaletteType",CurrentConfig.PaletteType, IniFilePath);
 	WritePrivateProfileInt("Video","ScanLines",CurrentConfig.ScanLines,IniFilePath);
 	WritePrivateProfileInt("Video","ForceAspect",CurrentConfig.Aspect,IniFilePath);
-	WritePrivateProfileInt("Video","RememberSize", CurrentConfig.RememberSize, IniFilePath);
+	WritePrivateProfileInt("Video", "RememberPos", CurrentConfig.RememberPos, IniFilePath);
+	WritePrivateProfileInt("Video", "RememberSize", CurrentConfig.RememberSize, IniFilePath);
 	WritePrivateProfileInt("Video", "WindowSizeX", tp.x, IniFilePath);
 	WritePrivateProfileInt("Video", "WindowSizeY", tp.y, IniFilePath);
+	WritePrivateProfileInt("Video", "WindowPosX", wp.x, IniFilePath);
+	WritePrivateProfileInt("Video", "WindowPosY", wp.y, IniFilePath);
 
 	WritePrivateProfileInt("Memory","RamSize",CurrentConfig.RamSize,IniFilePath);
 	WritePrivateProfileString("Memory", "ExternalBasicImage", CurrentConfig.ExternalBasicImage, IniFilePath);
@@ -286,7 +293,6 @@ unsigned char ReadIniFile(void)
 {
 	HANDLE hr=NULL;
 	unsigned char Index=0;
-	POINT p;
 
 	//Loads the config structure from the hard disk
 	CurrentConfig.CPUMultiplyer = GetPrivateProfileInt("CPU","DoubleSpeedClock",2,IniFilePath);
@@ -305,9 +311,12 @@ unsigned char ReadIniFile(void)
 
 	//CurrentConfig.Resize = GetPrivateProfileInt("Video","AllowResize",0,IniFilePath);
 	CurrentConfig.Aspect = GetPrivateProfileInt("Video","ForceAspect",1,IniFilePath);
-	CurrentConfig.RememberSize = GetPrivateProfileInt("Video","RememberSize",1,IniFilePath);
-	CurrentConfig.WindowSizeX= GetPrivateProfileInt("Video", "WindowSizeX", 640, IniFilePath);
+	CurrentConfig.RememberPos = GetPrivateProfileInt("Video", "RememberPos", 1, IniFilePath);
+	CurrentConfig.RememberSize = GetPrivateProfileInt("Video", "RememberSize", 1, IniFilePath);
+	CurrentConfig.WindowSizeX = GetPrivateProfileInt("Video", "WindowSizeX", 640, IniFilePath);
 	CurrentConfig.WindowSizeY = GetPrivateProfileInt("Video", "WindowSizeY", 480, IniFilePath);
+	CurrentConfig.WindowPosX = GetPrivateProfileInt("Video", "WindowPosX", -1, IniFilePath);
+	CurrentConfig.WindowPosY = GetPrivateProfileInt("Video", "WindowPosY", -1, IniFilePath);
 	CurrentConfig.AutoStart = GetPrivateProfileInt("Misc","AutoStart",1,IniFilePath);
 	CurrentConfig.CartAutoStart = GetPrivateProfileInt("Misc","CartAutoStart",1,IniFilePath);
 	CurrentConfig.ShowMousePointer = GetPrivateProfileInt("Misc","ShowMousePointer",1,IniFilePath);
@@ -365,20 +374,24 @@ unsigned char ReadIniFile(void)
 
 	InsertModule (CurrentConfig.ModulePath);	// Should this be here?
 	CurrentConfig.Resize = 1; //Checkbox removed. Remove this from the ini?
+
+	POINT siz = { 640, 480 };
 	if (CurrentConfig.RememberSize) {
-		p.x = CurrentConfig.WindowSizeX;
-		p.y = CurrentConfig.WindowSizeY;
-		SetWindowSize(p);
+		siz.x = CurrentConfig.WindowSizeX;
+		siz.y = CurrentConfig.WindowSizeY;
 	}
-	else {
-		p.x = 640;
-		p.y = 480;
-		SetWindowSize(p);
+	POINT pos = { -1, -1 };
+	if (CurrentConfig.RememberPos)
+	{
+		pos.x = CurrentConfig.WindowPosX;
+		pos.y = CurrentConfig.WindowPosX;
 	}
+	SetWindowSize(pos,siz);
 	return(0);
 }
 
-void SetWindowSize(POINT p) {
+void SetWindowSize(POINT p, POINT s) 
+{
 	if (EmuState.WindowHandle != NULL)
 	{
 		RECT ra = { 0,0,0,0 };
@@ -386,9 +399,12 @@ void SetWindowSize(POINT p) {
 		::AdjustWindowRect(&ra, WS_OVERLAPPEDWINDOW, TRUE);
 		int windowBorderWidth = ra.right - ra.left;
 		int windowBorderHeight = ra.bottom - ra.top;
-		int width = p.x + windowBorderWidth;
-		int height = p.y + windowBorderHeight + GetRenderWindowStatusBarHeight();
-		SetWindowPos(EmuState.WindowHandle, 0, 0, 0, width, height, SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+		int width = s.x + windowBorderWidth;
+		int height = s.y + windowBorderHeight + GetRenderWindowStatusBarHeight();
+		if (p.x == -1 || p.y == -1)
+			SetWindowPos(EmuState.WindowHandle, 0, 0, 0, width, height, SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+		else
+			SetWindowPos(EmuState.WindowHandle, 0, p.x, p.y, width, height, SWP_NOOWNERZORDER | SWP_NOZORDER);
 	}
 }
 
