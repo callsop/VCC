@@ -1056,6 +1056,14 @@ unsigned __stdcall EmuLoop(HANDLE hEvent)
 		}
 
 		StartRender();
+
+		// If memory window active, issue a refresh once per update, thus
+		// if emulation has slowed down, so will memory window and not
+		// overwork the cpu.
+		HWND memWnd = FindWindow(NULL, TEXT("Memory"));
+		if (memWnd)
+			SendMessage(memWnd, WM_TIMER, IDT_MEM_TIMER, 0);
+
 		for (uint8_t Frames = 1; Frames <= EmuState.FrameSkip; Frames++)
 		{
 			FrameCounter++;
