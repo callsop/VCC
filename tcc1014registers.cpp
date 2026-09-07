@@ -164,28 +164,46 @@ void GimeWrite(unsigned char port,unsigned char data)
 
 unsigned char GimeRead(unsigned char port)
 {
+	auto lastBus = []()
+	{
+		VCC::CPUState MC6809GetState();
+		auto cpuState = MC6809GetState();
+		return cpuState.PC < 0xFF00 ? MemRead8(cpuState.PC) : 0;
+	};
+
 	// iobus sets port range 0x90 to 0xBF
 	auto data = 0;
 	switch (port)
 	{
-	case 0x92:
-		data=LastIrq;
-		LastIrq=0;
-		CPUDeAssertInterupt(IS_GIME, INT_IRQ);
-		return data;
-	case 0x93:
-		data=LastFirq;
-		LastFirq=0;
-		CPUDeAssertInterupt(IS_GIME, INT_FIRQ);
-		return data;
-	default:
-		if (port >= 0xA0) {
-			data = GimeRegisters[port];
-		    if (port >= 0xB0) data &= 0x3F;
+		case 0x92:
+			data = LastIrq;
+			LastIrq = 0;
+			CPUDeAssertInterupt(IS_GIME, INT_IRQ);
 			return data;
-	    } else {
-			return 0x1B;
-		}
+		case 0x93:
+			data = LastFirq;
+			LastFirq = 0;
+			CPUDeAssertInterupt(IS_GIME, INT_FIRQ);
+			return data;
+		default:
+			data = GimeRegisters[port];
+			// mmu registers, 
+			if (port >= 0xA0 && port <= 0xAF)
+			{
+				// - if 128k or 512k upper bits are not driven by gime
+				if (EmuState.RamSize <= 1)
+					return (lastBus() & 0xC0) | (data & 0x3F);
+
+				// - else if 2048/8192k read all bits
+				return data;
+			}
+
+			// palette registers, read lower bits
+			if (port >= 0xB0 && port <= 0xBF)
+				return (lastBus() & 0xC0) | (data & 0x3F);
+
+			// other gime registers are unreadable
+			return lastBus();
 	}
 }
 
